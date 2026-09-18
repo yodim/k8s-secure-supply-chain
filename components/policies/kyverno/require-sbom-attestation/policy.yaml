@@ -26,6 +26,9 @@ spec:
       verifyImages:
         - imageReferences:
             - "ghcr.io/yodim/*"
+          imageRegistryCredentials:
+            secrets:
+              - ghcr-creds  # dockerconfigjson in the kyverno namespace; the registry is private
           failureAction: Enforce
           attestations:
             - type: https://cyclonedx.org/bom
