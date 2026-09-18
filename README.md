@@ -115,4 +115,4 @@ Issues and PRs welcome — especially real-world reuse reports ("I took the SBOM
 
 ---
 
-*Maintained by [Mohamed El Mehdi Batrone](https://batrone.com) — Systems & DevOps engineer (CKA, Terraform Associate, AZ-104), PhD researcher in software vulnerability detection.*
+*Maintained by [Mehdi Batrone](https://batrone.com) — Systems & DevSecOps engineer.*
