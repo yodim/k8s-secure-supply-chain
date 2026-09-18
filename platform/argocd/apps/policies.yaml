@@ -24,3 +24,7 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      # Kyverno defaults fields on ClusterPolicies at admission; server-side
+      # apply keeps Argo's diff from flagging them as permanent drift.
+      - ServerSideApply=true
