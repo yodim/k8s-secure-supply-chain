@@ -44,6 +44,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      actions: read
     uses: ./.github/workflows/source-scan.yml
     with:
       fail-on-findings: true
