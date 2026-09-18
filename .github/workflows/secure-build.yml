@@ -75,7 +75,7 @@ jobs:
 
       # --- Assessment: is anything in it currently known-vulnerable (build gate)
       - name: Scan (Trivy) — gate on ${{ inputs.fail-on-severity }}
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ inputs.image-name }}:${{ github.sha }}
           format: table
