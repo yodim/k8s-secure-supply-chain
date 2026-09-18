@@ -21,3 +21,12 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+  # Kyverno pins the verified digest onto the image at admission
+  # (mutateDigest). Git stays on the moving tag; the pinned digest is
+  # policy-managed state, not drift.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jqPathExpressions:
+        - .spec.template.spec.containers[].image

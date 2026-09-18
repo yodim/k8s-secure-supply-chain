@@ -3,11 +3,11 @@
 ## v1.0 — the credible core (current focus)
 
 - [x] Repo structure: catalog (`components/`) + composition (`platform/`)
-- [ ] `make up` provisions kind + registry via Terraform module
-- [ ] Argo CD bootstrap (app-of-apps) installs Kyverno + policies via GitOps
-- [ ] `secure-build` reusable workflow: build → SBOM (Syft) → scan (Trivy) → sign + attest (Cosign keyless)
-- [ ] Demo app proves the chain end-to-end; `make verify` shows unsigned image rejected
-- [ ] Policy tests green in CI (`kyverno test`)
+- [x] `make up` provisions kind + registry via Terraform module
+- [x] Argo CD bootstrap (app-of-apps) installs Kyverno + policies via GitOps
+- [x] `secure-build` reusable workflow: build → SBOM (Syft) → scan (Trivy) → sign + attest (Cosign keyless)
+- [x] Demo app proves the chain end-to-end; `make verify` shows unsigned image rejected
+- [x] Policy tests green in CI (`kyverno test`)
 - [x] `source-scan` reusable workflow: gitleaks + Semgrep, SARIF to the Security tab
 - [x] ADRs 0001–0005 finalized
 
