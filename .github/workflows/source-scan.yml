@@ -26,7 +26,7 @@ on:
         description: "Pinned Semgrep release"
         required: false
         type: string
-        default: "1.86.0"
+        default: "1.177.0"
 
 permissions: {}
 
