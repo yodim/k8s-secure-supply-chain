@@ -1,0 +1,15 @@
+---
+extends: default
+
+ignore: |
+  .terraform/
+
+rules:
+  line-length:
+    max: 140
+  document-start:
+    present: true
+  comments:
+    min-spaces-from-content: 1
+  truthy:
+    check-keys: false  # GitHub Actions uses 'on:' as a key

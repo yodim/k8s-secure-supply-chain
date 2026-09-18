@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-pinned-tag
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:1.4.2
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-digest
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app@sha256:6a180828a1a3f95cbd74c9dfc1c5a29c07d1b74a4d3455d6bbcdd8f8b3d0b5a7
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-latest
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:latest
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-untagged
+spec:
+  containers:
+    - name: app
+      image: nginx

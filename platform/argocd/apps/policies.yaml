@@ -1,0 +1,26 @@
+---
+# Pulls admission policies straight from the component catalog — the
+# composition consumes components/, never the other way around.
+# include glob picks up each policy.yaml; READMEs and test/ dirs are ignored.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: supply-chain-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yodim/k8s-secure-supply-chain
+    targetRevision: main
+    path: components/policies/kyverno
+    directory:
+      recurse: true
+      include: "*/policy.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

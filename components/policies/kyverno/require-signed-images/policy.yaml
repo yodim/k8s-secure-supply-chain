@@ -1,0 +1,41 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-signed-images
+  annotations:
+    policies.kyverno.io/title: Require Cosign-Signed Images
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: critical
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Rejects any workload whose image lacks a valid Cosign keyless signature
+      issued to the trusted CI identity. Adjust `subject` and `issuer` to pin
+      your own build system before reusing.
+spec:
+  validationFailureAction: Enforce
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+  rules:
+    - name: verify-signature
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [apps]  # scope to workload namespaces; widen deliberately
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/yodim/*"   # only images we claim to sign; others are untouched
+          failureAction: Enforce
+          attestors:
+            - entries:
+                - keyless:
+                    # Pin the exact CI identity allowed to produce runnable images.
+                    # A fork's workflow, or a developer laptop, will NOT verify.
+                    subject: "https://github.com/yodim/k8s-secure-supply-chain/.github/workflows/secure-build.yml@refs/heads/main"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: https://rekor.sigstore.dev
+          mutateDigest: true      # rewrite tag -> digest so what was verified is what runs
+          verifyDigest: true
+          required: true

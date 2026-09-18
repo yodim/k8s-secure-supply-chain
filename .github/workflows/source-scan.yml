@@ -1,0 +1,127 @@
+---
+# Reusable source-integrity workflow: secret scanning + SAST.
+# Layer 1 of the chain — see adr/0005-scope-boundary.md for why these two
+# tools and not a full SAST platform.
+name: source-scan
+
+on:
+  workflow_call:
+    inputs:
+      fail-on-findings:
+        description: "Fail the job when findings are reported. Set false to onboard in report-only mode."
+        required: false
+        type: boolean
+        default: true
+      semgrep-rules:
+        description: "Space-separated Semgrep rulesets"
+        required: false
+        type: string
+        default: "p/security-audit p/secrets"
+      gitleaks-version:
+        description: "Pinned gitleaks release"
+        required: false
+        type: string
+        default: "8.18.4"
+      semgrep-version:
+        description: "Pinned Semgrep release"
+        required: false
+        type: string
+        default: "1.86.0"
+
+permissions: {}
+
+jobs:
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write  # SARIF upload to the Security tab
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # gitleaks scans history, not just the tip
+
+      - name: Install gitleaks
+        env:
+          VERSION: ${{ inputs.gitleaks-version }}
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download"
+          curl -sSfL "${base}/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      # --redact keeps any discovered secret out of the public build log.
+      # Exit code is captured rather than propagated so SARIF still uploads.
+      - name: Scan
+        id: scan
+        run: |
+          set +e
+          gitleaks detect \
+            --source . \
+            --redact \
+            --report-format sarif \
+            --report-path gitleaks.sarif \
+            --exit-code 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Upload SARIF
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif
+          category: gitleaks
+
+      - name: Enforce
+        if: steps.scan.outputs.code == '2'
+        run: |
+          echo "::error::gitleaks found committed secrets. See the Security tab for details."
+          echo "A secret in git history stays there after deletion — rotate it, then rewrite history."
+          [ "${{ inputs.fail-on-findings }}" = "true" ] && exit 1 || exit 0
+
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Semgrep
+        run: pipx install "semgrep==${{ inputs.semgrep-version }}"
+
+      # `semgrep scan` with explicit rulesets runs fully offline of any SaaS
+      # account; `semgrep ci` would require SEMGREP_APP_TOKEN.
+      - name: Scan
+        id: scan
+        env:
+          # Via env, not direct interpolation: keeps the input out of the
+          # shell command string. Each ruleset needs its own --config flag.
+          RULES: ${{ inputs.semgrep-rules }}
+        run: |
+          args=()
+          for r in $RULES; do args+=(--config "$r"); done
+          set +e
+          semgrep scan "${args[@]}" \
+            --sarif --output=semgrep.sarif \
+            --metrics=off \
+            --error
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Upload SARIF
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Enforce
+        if: steps.scan.outputs.code != '0'
+        run: |
+          echo "::error::Semgrep reported findings. See the Security tab for details."
+          [ "${{ inputs.fail-on-findings }}" = "true" ] && exit 1 || exit 0

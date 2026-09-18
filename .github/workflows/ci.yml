@@ -1,0 +1,63 @@
+---
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: yamllint
+        run: |
+          pip install --quiet yamllint
+          yamllint -c .yamllint.yml .
+      - name: shellcheck
+        run: shellcheck scripts/*.sh
+      - name: terraform fmt
+        uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=components/terraform/modules/kind-cluster fmt -check -recursive
+
+  policy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Kyverno CLI
+        uses: kyverno/action-install-cli@v0.2.0
+      - name: Run policy tests
+        run: |
+          for d in components/policies/kyverno/*/; do
+            if [ -f "$d/test/kyverno-test.yaml" ]; then
+              echo "== $d"
+              kyverno test "$d/test"
+            fi
+          done
+
+  # Layer 1: secret scanning + SAST, using this repo's own published component.
+  source-scan:
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/source-scan.yml
+    with:
+      fail-on-findings: true
+
+  # Dogfood the reusable workflow: the demo app is built, SBOM'd, scanned,
+  # signed and attested by the very component this repo publishes.
+  demo-app:
+    if: github.ref == 'refs/heads/main'
+    needs: [lint, policy-tests, source-scan]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/secure-build.yml
+    with:
+      image-name: ghcr.io/yodim/k8s-secure-supply-chain/demo-app
+      context: platform/apps/demo-app

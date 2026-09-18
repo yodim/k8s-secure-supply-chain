@@ -1,0 +1,25 @@
+---
+# App-of-apps: the single Application applied manually (by scripts/bootstrap.sh).
+# Everything else — Kyverno, policies, workloads — is a child Application
+# under platform/argocd/apps/, reconciled from Git. After this, kubectl is
+# for reading, not writing.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yodim/k8s-secure-supply-chain
+    targetRevision: main
+    path: platform/argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

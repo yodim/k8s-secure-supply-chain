@@ -1,0 +1,45 @@
+---
+apiVersion: kyverno.io/v1  # tested end-to-end via `make verify` (see README)
+kind: ClusterPolicy
+metadata:
+  name: require-sbom-attestation
+  annotations:
+    policies.kyverno.io/title: Require SBOM Attestation
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Requires every image to carry an in-toto attestation containing a
+      CycloneDX SBOM, signed by the trusted CI identity. Inventory becomes
+      a precondition for running, not an afterthought.
+spec:
+  validationFailureAction: Enforce
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+  rules:
+    - name: verify-sbom-attestation
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [apps]
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/yodim/*"
+          failureAction: Enforce
+          attestations:
+            - type: https://cyclonedx.org/bom
+              attestors:
+                - entries:
+                    - keyless:
+                        subject: "https://github.com/yodim/k8s-secure-supply-chain/.github/workflows/secure-build.yml@refs/heads/main"
+                        issuer: "https://token.actions.githubusercontent.com"
+                        rekor:
+                          url: https://rekor.sigstore.dev
+              conditions:
+                - all:
+                    # The attestation must actually contain a CycloneDX doc,
+                    # not just claim the predicate type.
+                    - key: "{{ bomFormat }}"
+                      operator: Equals
+                      value: "CycloneDX"

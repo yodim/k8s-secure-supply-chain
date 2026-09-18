@@ -1,0 +1,36 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow :latest and Untagged Images
+    policies.kyverno.io/category: Baseline Hygiene
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Mutable tags make rollbacks meaningless and audits impossible: what ran
+      yesterday under :latest may not be what runs today. Requires an explicit
+      tag or digest on every container image.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-image-tag
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+      validate:
+        message: "An explicit image tag or digest is required; ':latest' or untagged images are not allowed."
+        foreach:
+          - list: "request.object.spec.containers[]"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: Equals
+                    value: "*:latest"
+                  - key: "{{ regex_match('^[^:@]+$', element.image) }}"
+                    operator: Equals
+                    value: true
