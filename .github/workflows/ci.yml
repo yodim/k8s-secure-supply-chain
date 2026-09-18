@@ -62,3 +62,4 @@ jobs:
     with:
       image-name: ghcr.io/yodim/k8s-secure-supply-chain/demo-app
       context: platform/apps/demo-app
+      extra-tag: main

@@ -26,6 +26,11 @@ on:
         required: false
         type: string
         default: "CRITICAL,HIGH"
+      extra-tag:
+        description: "Optional moving tag (e.g. a branch name) pushed alongside the immutable sha tag; both share one signed digest"
+        required: false
+        type: string
+        default: ""
     outputs:
       image-digest:
         description: "Immutable digest of the pushed image"
@@ -90,7 +95,12 @@ jobs:
           context: ${{ inputs.context }}
           file: ${{ inputs.context }}/${{ inputs.dockerfile }}
           push: true
-          tags: ${{ inputs.image-name }}:${{ github.sha }}
+          tags: >-
+            ${{ inputs.image-name }}:${{ github.sha }}${{
+              inputs.extra-tag != ''
+              && format(',{0}:{1}', inputs.image-name, inputs.extra-tag)
+              || ''
+            }}
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
