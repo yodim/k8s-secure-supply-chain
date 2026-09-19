@@ -101,7 +101,15 @@ After re-pinning, re-run the meta-check below. A fixture nobody has watched fail
 
 Worth doing once after any change here. Point the fixture at a clean base, for example `cgr.dev/chainguard/python:latest`, push the branch, and confirm the `build-gate` job goes **red** with the message from `assert-fixable-vulns.sh`. Then revert.
 
-Result of the last run, 2026-09-20: confirmed red, with `every CRITICAL,HIGH finding in the fixture is unfixed` and a pointer to this file.
+Result of the last run, 2026-09-20 (PR #1, closed unmerged): confirmed red.
+
+```
+==> Fixture at CRITICAL,HIGH: 0 findings, 0 with a fix available
+FAIL the fixture reports no CRITICAL,HIGH vulnerabilities at all.
+     Runbook: tests/fixtures/vulnerable-image/README.md
+```
+
+Worth noting where it failed: at the evidence assertion, with `Run the gate` and `Require the gate to have failed` both skipped. That is the intended order. The assertion exists to catch a fixture that has stopped being vulnerable *before* the gate's verdict is interpreted, because at that point a passing gate would be correct behaviour and blaming the gate would be wrong.
 
 ## Do not let a bot bump this
 
