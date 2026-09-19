@@ -84,6 +84,40 @@ Signatures are pinned to a specific workflow identity, so a fork verifying again
 grep -rn "yodim/k8s-secure-supply-chain" --include="*.yaml" .
 ```
 
+## Private repo? Three secrets live outside git
+
+Everything above assumes the repo and its ghcr packages are public. If they are private, three credentials must exist in the cluster, none of which are (or should ever be) in git. They vanish with the cluster, so **recreate all three after every `make down`**, or Argo CD sits at `Unknown` and every pod pull gets a 401.
+
+Your GitHub token needs the `repo` and `read:packages` scopes. With the gh CLI: `gh auth refresh -s read:packages`, then `gh auth token` prints it.
+
+```bash
+export KUBECONFIG=~/.kube/kind-supply-chain.yaml
+TOKEN=$(gh auth token)
+
+# 1. Argo CD needs to clone the repo
+kubectl -n argocd create secret generic repo-k8s-secure-supply-chain \
+  --from-literal=type=git \
+  --from-literal=url=https://github.com/yodim/k8s-secure-supply-chain \
+  --from-literal=username=yodim \
+  --from-literal=password="$TOKEN"
+kubectl -n argocd label secret repo-k8s-secure-supply-chain \
+  argocd.argoproj.io/secret-type=repository
+
+# 2. Kyverno needs to fetch image metadata, signatures and attestations
+#    (the verifyImages policies reference this secret by name)
+kubectl -n kyverno create secret docker-registry ghcr-creds \
+  --docker-server=ghcr.io --docker-username=yodim --docker-password="$TOKEN"
+
+# 3. The kubelet needs to pull the image
+kubectl create namespace apps --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n apps create secret docker-registry ghcr-creds \
+  --docker-server=ghcr.io --docker-username=yodim --docker-password="$TOKEN"
+kubectl -n apps patch serviceaccount default \
+  -p '{"imagePullSecrets":[{"name":"ghcr-creds"}]}'
+```
+
+Create 1 before (or right after) `make bootstrap`; 2 and 3 any time before the demo app syncs. Timing is forgiving because everything retries.
+
 ## Testing without a cluster
 
 Fast feedback while editing policies — no Docker needed:
@@ -133,3 +167,4 @@ make down
 kind delete cluster --name supply-chain
 docker rm -f supply-chain-registry
 ```
+On a private repo, remember the three out-of-band secrets are gone too. Recreate them (see above) before expecting anything to sync.
