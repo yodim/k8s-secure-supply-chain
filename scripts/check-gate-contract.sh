@@ -71,16 +71,18 @@ esac
   fail "the gate scans '${gate_ref}' but the build produced '${load_ref}'.
      The scan is not looking at the image that gets pushed."
 
-[ "${gate_exit}" != "0" ] && [ "${gate_exit}" != "null" ] ||
+if [ "${gate_exit}" = "0" ] || [ "${gate_exit}" = "null" ]; then
   fail "the gate's exit-code is '${gate_exit}': it reports findings but does not fail the build."
+fi
 
 # shellcheck disable=SC2016  # the literal Actions expression is the expected value
 [ "${gate_sev}" = '${{ inputs.fail-on-severity }}' ] ||
   fail "severity is no longer wired to the fail-on-severity input (found '${gate_sev}').
      If that was deliberate, update this check deliberately too."
 
-[ -n "${sev_default}" ] && [ "${sev_default}" != "null" ] ||
+if [ -z "${sev_default}" ] || [ "${sev_default}" = "null" ]; then
   fail "fail-on-severity has no default, so there is nothing for the negative control to test."
+fi
 
 log "Gate under test, read from ${WORKFLOW}:"
 printf '    action:         %s\n' "${gate_uses}"
