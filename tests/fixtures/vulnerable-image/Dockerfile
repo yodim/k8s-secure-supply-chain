@@ -23,7 +23,7 @@
 # Measured 2026-09-20: 133 findings, all with fixes, 26 CRITICAL and 107
 # HIGH. README.md here has the runbook for when that stops being true.
 # renovate: ignore
-FROM python:3.9.7-slim-bullseye@sha256:aef632387d994b410de020dfd08fb1d9b648fc8a5a44f332f7ee326c8e170dba
+FROM cgr.dev/chainguard/python:latest
 
 LABEL org.opencontainers.image.title="vulnerable-fixture"
 LABEL org.opencontainers.image.description="Deliberately vulnerable CI test fixture. Never deploy this."
