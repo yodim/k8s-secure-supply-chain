@@ -8,6 +8,7 @@
 - [x] `secure-build` reusable workflow: build → SBOM (Syft) → scan (Trivy) → sign + attest (Cosign keyless)
 - [x] Demo app proves the chain end-to-end; `make verify` shows unsigned image rejected
 - [x] Policy tests green in CI (`kyverno test`)
+- [x] Both enforcement points have negative controls: admission refuses an unsigned image (`make verify`), and the Trivy gate fails a build on a deliberately vulnerable fixture (CI). The source-scan gates, gitleaks and Semgrep, are still unproven
 - [x] `source-scan` reusable workflow: gitleaks + Semgrep, SARIF to the Security tab
 - [x] ADRs 0001–0005 finalized
 

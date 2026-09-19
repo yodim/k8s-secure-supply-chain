@@ -46,6 +46,13 @@ The chain of custody: **source → SBOM → scan → signature → attestation �
 
 Scope is deliberately narrow: build-time provenance and admission enforcement, plus lightweight source checks. Runtime threat detection, full SAST platforms and network policy are out, and [ADR-0005](adr/0005-scope-boundary.md) explains each exclusion — this is a supply chain reference, not a complete security program.
 
+### Proving it enforces
+
+A control that has never refused anything is decoration, and the failure is invisible: a gate switched off looks exactly like a gate nothing has tripped. Both enforcement points here have a negative control that runs on every change, and each one asserts *why* it was refused, not merely that something was.
+
+- **Admission**: [`make verify`](scripts/verify.sh) creates a pod from a real, resolvable, [deliberately unsigned image](tests/fixtures/unsigned-image/) and requires Kyverno to refuse it by name. If the refusal ever looks like "image not found" instead, the script fails, because that result would also appear with every policy deleted.
+- **Build gate**: CI builds a [deliberately vulnerable image](tests/fixtures/vulnerable-image/) and requires the Trivy gate to fail the build. It reads the gate's own configuration out of the workflow rather than restating it, so loosening the gate loosens the test and CI goes red.
+
 ## Quickstart
 
 Prerequisites: Docker, [kind](https://kind.sigs.k8s.io/), kubectl, Terraform ≥ 1.7.
@@ -96,6 +103,7 @@ The *why* behind the stack — trade-offs included, not marketing:
 │   ├── argocd/             #   app-of-apps, bootstrap manifests
 │   └── apps/demo-app/      #   sample workload exercising the full chain
 ├── docs/                   # Quickstart, threat model, architecture notes
+├── tests/fixtures/         # Deliberately broken artifacts the negative controls need
 └── scripts/                # Bootstrap & verification helpers
 ```
 

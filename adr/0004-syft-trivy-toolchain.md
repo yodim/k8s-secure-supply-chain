@@ -28,4 +28,5 @@ Syft generates the SBOM (CycloneDX) which gets attested and travels with the ima
 - The admission policy can require an SBOM *attestation* — proof of inventory at build time — independent of any scanner's opinion.
 - Rescanning old images later uses the attested SBOM without re-pulling toolchains, enabling "new CVE, which images are affected?" queries.
 - Two tools to keep updated in the workflow; version pinning documented in the CI component.
+- The scan verdict is a gate, so it needs evidence it can actually fail a build: `tests/fixtures/vulnerable-image` supplies that, and `ignore-unfixed` is why the fixture must carry findings that have fixes.
 - Revisit trigger: SBOM formats consolidate hard around one ecosystem, or Trivy's SBOM output reaches parity as an attestation source.

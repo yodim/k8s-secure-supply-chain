@@ -49,11 +49,121 @@ jobs:
     with:
       fail-on-findings: true
 
+  # Negative control for the build gate. Admission has one already
+  # (scripts/verify.sh proves Kyverno refuses an unsigned image); the Trivy
+  # gate had none, so nothing established it could fail a build rather than
+  # merely run and report. Runs on pull requests too, because a change that
+  # loosens the gate is exactly the kind that arrives in one.
+  build-gate:
+    name: Build gate negative control
+    runs-on: ubuntu-latest
+    # No packages: write, and no registry login below. The fixture is
+    # structurally incapable of leaving the runner, which is the same
+    # promise secure-build.yml makes about an image that fails the scan.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      # Reads the gate's real configuration rather than restating it. A
+      # restatement drifts silently; reading the live values means a change
+      # that weakens the gate weakens this test too, the fixture stops being
+      # rejected, and this job goes red.
+      - name: Read the real gate's configuration
+        id: contract
+        run: ./scripts/check-gate-contract.sh
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build the vulnerable fixture, locally
+        uses: docker/build-push-action@v7
+        with:
+          context: tests/fixtures/vulnerable-image
+          file: tests/fixtures/vulnerable-image/Dockerfile
+          load: true
+          tags: vulnerable-fixture:local
+
+      # RepoDigests is populated only by a push or a pull, so an empty value
+      # is direct proof this image has never been near a registry.
+      - name: The fixture must not have reached a registry
+        run: |
+          refs=$(docker image inspect vulnerable-fixture:local -f '{{join .RepoDigests ","}}')
+          if [ -n "${refs}" ]; then
+            echo "::error::The fixture carries a registry digest (${refs}), so it was pushed or pulled."
+            exit 1
+          fi
+          if grep -rn "vulnerable-fixture" platform/; then
+            echo "::error::The fixture is referenced under platform/. It is a test artifact, not a workload."
+            exit 1
+          fi
+          echo "No registry digest and no platform reference: the fixture stayed on the runner."
+
+      # Identical to the gate below except for exit-code, so the gate's
+      # verdict is attributable to that flag and nothing else. Trivy also
+      # exits non-zero when it cannot resolve an image or reach its
+      # database; this step has no continue-on-error, so those land here
+      # rather than masquerading as the gate working.
+      - name: Scan the fixture without gating
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: vulnerable-fixture:local
+          format: json
+          output: trivy-fixture.json
+          exit-code: "0"
+          ignore-unfixed: ${{ steps.contract.outputs.ignore-unfixed }}
+          severity: ${{ steps.contract.outputs.severity }}
+
+      - name: Assert the fixture carries fixable findings
+        run: ./scripts/assert-fixable-vulns.sh trivy-fixture.json "${{ steps.contract.outputs.severity }}"
+
+      # The real gate, on the inputs that decide the verdict. Must fail.
+      - name: Run the gate
+        id: gate
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: vulnerable-fixture:local
+          format: table
+          exit-code: ${{ steps.contract.outputs.exit-code }}
+          ignore-unfixed: ${{ steps.contract.outputs.ignore-unfixed }}
+          severity: ${{ steps.contract.outputs.severity }}
+
+      - name: Require the gate to have failed
+        run: |
+          if [ "${{ steps.gate.outcome }}" != "failure" ]; then
+            echo "::error::The gate passed an image with fixable ${{ steps.contract.outputs.severity }} findings."
+            echo "The scan above confirmed those findings are present, so this is the gate not gating."
+            exit 1
+          fi
+          echo "The gate failed the build. That is the point."
+
+      # Positive control. "It failed" only means something alongside "it
+      # lets a clean image through". The unsigned fixture is FROM scratch
+      # with one text file, so it cannot acquire a CVE.
+      - name: Build the empty fixture
+        uses: docker/build-push-action@v7
+        with:
+          context: tests/fixtures/unsigned-image
+          file: tests/fixtures/unsigned-image/Dockerfile
+          load: true
+          tags: empty-fixture:local
+
+      - name: The gate must still pass a clean image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: empty-fixture:local
+          format: table
+          exit-code: ${{ steps.contract.outputs.exit-code }}
+          ignore-unfixed: ${{ steps.contract.outputs.ignore-unfixed }}
+          severity: ${{ steps.contract.outputs.severity }}
+
   # Dogfood the reusable workflow: the demo app is built, SBOM'd, scanned,
   # signed and attested by the very component this repo publishes.
+  # Nothing gets signed through a gate that was not just shown to fire.
   demo-app:
     if: github.ref == 'refs/heads/main'
-    needs: [lint, policy-tests, source-scan]
+    needs: [lint, policy-tests, source-scan, build-gate]
     permissions:
       contents: read
       packages: write

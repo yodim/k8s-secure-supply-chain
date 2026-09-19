@@ -30,6 +30,19 @@ gh workflow run publish-unsigned-fixture.yml
 
 The workflow also runs automatically when anything in this directory changes. Until it has run at least once, `make verify` will tell you the fixture is missing rather than passing for the wrong reason.
 
+## It is also the build gate's positive control
+
+The `build-gate` job in `ci.yml` scans this image and requires the Trivy gate to **pass** it. "The gate rejected a vulnerable image" only means something next to "the gate admits a clean one", otherwise a permanently broken scanner would satisfy the test.
+
+`FROM scratch` with a single text file is the strongest clean image available: it contains no packages, so it cannot acquire a vulnerability no matter how much time passes. **Adding anything to it breaks that job.** Keep it empty.
+
+## Why this one is published and the vulnerable fixture is not
+
+[`tests/fixtures/vulnerable-image`](../vulnerable-image/) is the matching fixture for the build gate, and it never leaves the runner. The asymmetry is not an inconsistency:
+
+- Admission can only refuse an image it can **resolve**, so this fixture has to exist in a registry, or the test degrades into the 404 problem described above.
+- Trivy scans a **local** image, so the vulnerable fixture needs no registry. Publishing it would contradict the rule it exists to verify, that an image failing the scan never reaches one.
+
 ## Is publishing an unsigned image a risk?
 
 It is inert. `FROM scratch` with a single text file: no shell, no libraries, no entrypoint that could execute. The cluster this repo builds refuses to run it by design, which is the whole point. Its only purpose is to be rejected.

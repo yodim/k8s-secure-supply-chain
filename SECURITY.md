@@ -16,11 +16,12 @@ This repository is a reference implementation, so the interesting failures are t
 - A signature produced by any identity other than the pinned workflow verifying successfully.
 - A way to reach the tag-to-digest gap: getting one image verified and a different one run.
 - A policy that appears to enforce but does not. See `require-signed-images` for a comment about a field that behaves this way on Kyverno 3.2.x; that class of bug is exactly what this section is asking for.
+- The Trivy gate in `secure-build.yml` publishing an image that contains fixable CRITICAL or HIGH vulnerabilities.
 - Credentials, tokens or signing material leaking into build logs, image layers, or the SBOM.
 
 Out of scope, because they are documented decisions rather than defects:
 
-- Vulnerabilities with no available fix not failing the build. Deliberate, see ADR-0004 and the `ignore-unfixed` flag.
+- Vulnerabilities with no available fix not failing the build. Deliberate, see ADR-0004 and the `ignore-unfixed` flag. It is also why `tests/fixtures/vulnerable-image` is pinned to a base whose findings do have fixes.
 - Builds and admission failing when Sigstore is unreachable. Failing closed is the intended behaviour, see ADR-0003.
 - The repository identity appearing in the public Rekor transparency log. Inherent to keyless signing, also ADR-0003.
 - Anything requiring cluster-admin on the target cluster, which is already game over.

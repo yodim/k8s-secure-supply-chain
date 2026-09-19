@@ -31,6 +31,10 @@ lint: ## Lint everything (yaml, shell, terraform)
 	shellcheck scripts/*.sh
 	terraform -chdir=components/terraform/modules/kind-cluster fmt -check -recursive
 
+.PHONY: check-gate
+check-gate: ## Assert the Trivy build gate is still wired the way its test expects
+	./scripts/check-gate-contract.sh
+
 .PHONY: test-policies
 test-policies: ## Run Kyverno policy tests (kyverno CLI required)
 	@for d in components/policies/kyverno/*/; do \

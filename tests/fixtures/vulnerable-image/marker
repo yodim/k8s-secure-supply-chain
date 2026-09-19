@@ -1,0 +1,8 @@
+This image is a CI test fixture. It is built from a deliberately outdated
+base so the vulnerability gate has something real to reject. It is not
+maintained, not scanned for fixes, not signed, not attested, and must never
+be deployed anywhere.
+
+If you found this image running, the supply chain is not enforcing.
+
+https://github.com/yodim/k8s-secure-supply-chain/tree/main/tests/fixtures/vulnerable-image

@@ -125,7 +125,12 @@ Fast feedback while editing policies — no Docker needed:
 ```bash
 make lint            # yamllint, shellcheck, terraform fmt
 make test-policies   # offline Kyverno tests for the two hygiene policies
+make check-gate      # assert the Trivy gate is still wired as its test expects
 ```
+
+`make check-gate` needs [mikefarah/yq](https://github.com/mikefarah/yq#install) v4. Note that Ubuntu's `apt install yq` is a different program, a Python wrapper around jq, and will not work. It reads the gate out of `secure-build.yml` and checks it is present, pinned, actually failing on findings, and still running before the push step.
+
+The gate's full negative control runs in CI rather than locally, because it needs the same Trivy version the action pins. To reproduce it yourself you need Docker and Trivy; see [tests/fixtures/vulnerable-image](../tests/fixtures/vulnerable-image/) for the commands.
 
 The two signature-verification policies have no offline tests on purpose: verifying a Cosign signature needs a live registry and Rekor, and a test that mocks all of that would assert nothing useful. They're covered end-to-end by `make verify` instead.
 
