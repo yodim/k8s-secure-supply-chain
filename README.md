@@ -4,7 +4,7 @@
 
 Every image that reaches this cluster is built, scanned, attested, signed, and admitted by policy. No exceptions, no manual gates.
 
-[![CI](https://github.com/yodim/k8s-secure-supply-chain/actions/workflows/secure-build.yml/badge.svg)](https://github.com/yodim/k8s-secure-supply-chain/actions)
+[![CI](https://github.com/yodim/k8s-secure-supply-chain/actions/workflows/ci.yml/badge.svg)](https://github.com/yodim/k8s-secure-supply-chain/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ---
