@@ -25,6 +25,15 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      # Kyverno defaults fields on ClusterPolicies at admission; server-side
-      # apply keeps Argo's diff from flagging them as permanent drift.
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+  # Kyverno defaults these three on admission and they are absent from git,
+  # so every policy would otherwise sit OutOfSync forever. Ignoring only the
+  # defaulted fields; anything the policies actually assert still diffs.
+  ignoreDifferences:
+    - group: kyverno.io
+      kind: ClusterPolicy
+      jqPathExpressions:
+        - .spec.admission
+        - .spec.rules[].skipBackgroundRequests
+        - .spec.rules[].verifyImages[].useCache
