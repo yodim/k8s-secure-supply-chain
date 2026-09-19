@@ -40,7 +40,7 @@ jobs:
       actions: read  # upload-sarif reads workflow run metadata
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # gitleaks scans history, not just the tip
 
@@ -94,7 +94,7 @@ jobs:
       actions: read  # upload-sarif reads workflow run metadata
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Semgrep
         run: pipx install "semgrep==${{ inputs.semgrep-version }}"

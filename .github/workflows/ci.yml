@@ -13,7 +13,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: yamllint
         run: |
           pip install --quiet yamllint
@@ -21,13 +21,13 @@ jobs:
       - name: shellcheck
         run: shellcheck scripts/*.sh
       - name: terraform fmt
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
       - run: terraform -chdir=components/terraform/modules/kind-cluster fmt -check -recursive
 
   policy-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Kyverno CLI
         uses: kyverno/action-install-cli@v0.2.0
       - name: Run policy tests
