@@ -27,13 +27,15 @@ spec:
     syncOptions:
       - ServerSideApply=true
       - RespectIgnoreDifferences=true
-  # Kyverno defaults these three on admission and they are absent from git,
-  # so every policy would otherwise sit OutOfSync forever. Ignoring only the
-  # defaulted fields; anything the policies actually assert still diffs.
+  # Kyverno defaults these on admission and they are absent from git, so the
+  # policies would otherwise sit OutOfSync forever. Deliberately limited to
+  # operational knobs: every field that carries verification meaning is
+  # declared in the policies themselves, so real drift still surfaces.
   ignoreDifferences:
     - group: kyverno.io
       kind: ClusterPolicy
       jqPathExpressions:
         - .spec.admission
+        - .spec.background
         - .spec.rules[].skipBackgroundRequests
         - .spec.rules[].verifyImages[].useCache

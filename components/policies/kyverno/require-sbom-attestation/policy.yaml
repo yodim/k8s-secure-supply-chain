@@ -48,3 +48,9 @@ spec:
                     - key: "{{ bomFormat }}"
                       operator: Equals
                       value: "CycloneDX"
+          # Kyverno defaults all three to true. Stated explicitly because
+          # they are verification semantics, not operational knobs: silence
+          # here would leave the guarantee resting on an upstream default.
+          required: true
+          mutateDigest: true
+          verifyDigest: true
