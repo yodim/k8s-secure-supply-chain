@@ -29,7 +29,9 @@ spec:
           imageRegistryCredentials:
             secrets:
               - ghcr-creds  # dockerconfigjson in the kyverno namespace; the registry is private
-          failureAction: Enforce
+          # Enforcement comes from spec.validationFailureAction above. Kyverno
+          # 1.13+ moves that to a per-rule `failureAction` here; on 3.2.x the
+          # field is not in the CRD schema, so setting it enforces nothing.
           attestations:
             - type: https://cyclonedx.org/bom
               attestors:
