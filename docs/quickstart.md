@@ -38,7 +38,7 @@ make verify
 
 Two checks, one point:
 
-1. **Positive control** — the demo app, built by the [secure-build workflow](../components/ci/github-actions/secure-build/) (SBOM → scan → sign → attest), is Running.
+1. **Positive control** — the demo app, built by the [secure-build workflow](../components/ci/github-actions/secure-build/) (SBOM → scan → push → sign → attest), is Running.
 2. **Negative control** — a Pod with an unsigned image is rejected at admission by [require-signed-images](../components/policies/kyverno/require-signed-images/). You'll see the Kyverno denial message.
 
 If both pass, you have a cluster where "we sign our images" is enforced fact, not policy-document fiction.
@@ -65,7 +65,7 @@ curl http://localhost:8080
 make down
 ```
 
-> **First run?** The positive control needs a signed image, which only exists after your CI has run once. See [local-testing.md](local-testing.md#the-ordering-problem-push-before-you-verify) — push to GitHub first, then verify locally.
+> **Cloned this repo?** Nothing to do first. The demo image, its signature and its attestation are public packages, so `make up && make bootstrap && make verify` works on a clean clone with no credentials. **Forked or renamed it?** The positive control then needs an image signed by *your* identity, which only exists after your CI has run once: see [local-testing.md](local-testing.md#the-ordering-problem-only-if-you-fork-or-rename).
 
 ## Troubleshooting
 

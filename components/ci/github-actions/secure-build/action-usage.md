@@ -1,6 +1,6 @@
 # Using the secure-build reusable workflow from your own repo
 
-One `uses:` line gets you build → SBOM → scan → sign → attest:
+One `uses:` line gets you build → SBOM → scan → push → sign → attest:
 
 ```yaml
 # .github/workflows/release.yml in YOUR repo

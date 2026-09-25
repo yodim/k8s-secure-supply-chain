@@ -25,7 +25,7 @@ cosign attest --predicate sbom.cdx.json --type cyclonedx <image@digest>
 
 ## Reuse in your environment
 
-Same three knobs as [require-signed-images](../require-signed-images/): `imageReferences`, keyless `subject`, and start in `Audit` before `Enforce`. Pair with that policy rather than replacing it — signature and SBOM are independent claims.
+Same three knobs as [require-signed-images](../require-signed-images/): `imageReferences`, keyless `subject`, and start in `Audit` before `Enforce` via `spec.validationFailureAction`, which on Kyverno 1.12 (chart 3.2.x) is the only field that controls enforcement. Pair with that policy rather than replacing it — signature and SBOM are independent claims.
 
 ## Test
 

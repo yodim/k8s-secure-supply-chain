@@ -26,12 +26,17 @@ spec:
       verifyImages:
         - imageReferences:
             - "ghcr.io/yodim/*"   # only images we claim to sign; others are untouched
+          # Optional. The demo packages are public, and Kyverno falls back to
+          # an anonymous pull when this secret is absent, so a clean clone
+          # verifies with no credential at all. Create it only for a private
+          # registry: see docs/local-testing.md.
           imageRegistryCredentials:
             secrets:
-              - ghcr-creds  # dockerconfigjson in the kyverno namespace; the registry is private
+              - ghcr-creds  # dockerconfigjson in the kyverno namespace
           # Enforcement comes from spec.validationFailureAction above. Kyverno
-          # 1.13+ moves that to a per-rule `failureAction` here; on 3.2.x the
-          # field is not in the CRD schema, so setting it enforces nothing.
+          # 1.13+ moves that to a per-rule `failureAction` here; on Kyverno
+          # 1.12 (chart 3.2.x) the field is not in the CRD schema, so setting
+          # it enforces nothing.
           attestors:
             - entries:
                 - keyless:

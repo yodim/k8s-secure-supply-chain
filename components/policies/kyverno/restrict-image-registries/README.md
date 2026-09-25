@@ -42,7 +42,7 @@ Two details in the pattern are load-bearing:
 
 Enforcement comes from the top-level `spec.validationFailureAction: Enforce`.
 
-Do not add a per-rule `failureAction` here. On Kyverno 1.12 that field is not in the ClusterPolicy CRD schema, so the API server prunes it silently and it enforces nothing, while looking exactly like the thing that does. The same trap is documented in `require-signed-images`.
+Do not add a per-rule `failureAction` here. On Kyverno 1.12 (chart 3.2.x) that field is not in the ClusterPolicy CRD schema, so the API server prunes it silently and it enforces nothing, while looking exactly like the thing that does. The same trap is documented in `require-signed-images`.
 
 `failurePolicy: Fail` and `background: true` match the sibling policies: if Kyverno cannot be reached, requests are denied rather than waved through.
 

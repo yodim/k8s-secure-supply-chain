@@ -15,7 +15,7 @@ This repository is a reference implementation, so the interesting failures are t
 - An image without a valid signature, or without a valid SBOM attestation, being admitted to the `apps` namespace.
 - A signature produced by any identity other than the pinned workflow verifying successfully.
 - A way to reach the tag-to-digest gap: getting one image verified and a different one run.
-- A policy that appears to enforce but does not. See `require-signed-images` for a comment about a field that behaves this way on Kyverno 3.2.x; that class of bug is exactly what this section is asking for.
+- A policy that appears to enforce but does not. See `require-signed-images` for a comment about a field that behaves this way on Kyverno 1.12 (chart 3.2.x); that class of bug is exactly what this section is asking for.
 - The Trivy gate in `secure-build.yml` publishing an image that contains fixable CRITICAL or HIGH vulnerabilities.
 - Credentials, tokens or signing material leaking into build logs, image layers, or the SBOM.
 

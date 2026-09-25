@@ -33,8 +33,8 @@ Install Docker Desktop, then enable **Settings → Resources → WSL Integration
 ```bash
 sudo apt update && sudo apt install -y make curl gnupg lsb-release
 
-# kind
-curl -Lo kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+# kind (v0.33.0 is what this was last tested end to end on)
+curl -Lo kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64
 chmod +x kind && sudo mv kind /usr/local/bin/
 
 # kubectl
@@ -54,22 +54,34 @@ tar -xzf kyverno-cli_linux_x86_64.tar.gz && sudo mv kyverno /usr/local/bin/
 docker info >/dev/null && echo "docker ok"
 ```
 
-## The ordering problem: push before you verify
+## Cloning this repo: nothing to push first
 
-This is the part that surprises people, and it's inherent to the design rather than a defect.
-
-`make verify` runs three checks. The two **negative controls** (an unsigned image must be rejected, and an image from an unapproved registry must be rejected) work immediately on a fresh cluster. The **positive control** waits for the demo app to be Running — and the demo app's image is only produced, signed and attested by *your* CI. Until the workflow has run on GitHub, that image doesn't exist, so the positive control cannot pass locally.
-
-So the real first-run sequence is:
+A plain clone of this repo works immediately. The demo app image, its Cosign signature and its SBOM attestation are all published as public ghcr packages, and Argo CD clones a public repo anonymously, so no credential of any kind is needed:
 
 ```
-1. Push the repo to GitHub          → Actions builds, scans, signs, attests the demo image
-2. Confirm the run is green         → the signed image now exists in ghcr.io
+1. git clone https://github.com/yodim/k8s-secure-supply-chain
+2. make up && make bootstrap        → local cluster + platform
+3. make verify                      → all three controls pass
+```
+
+Verified from a clean clone in a fresh directory with no cluster, no Argo CD repository secret and no `ghcr-creds`.
+
+### The ordering problem: only if you fork or rename
+
+The moment you point this at *your* repo, the ordering matters, and this is inherent to the design rather than a defect.
+
+`make verify` runs three checks. The two **negative controls** (an unsigned image must be rejected, and an image from an unapproved registry must be rejected) work immediately on a fresh cluster, because the unsigned fixture is published from here and stays public. The **positive control** waits for the demo app to be Running, and once the signing identity is yours, that image is only produced, signed and attested by *your* CI. Until your workflow has run on GitHub, the image it verifies against does not exist, so the positive control cannot pass locally.
+
+So for a fork the first-run sequence is:
+
+```
+1. Push your fork to GitHub         → Actions builds, scans, signs, attests the demo image
+2. Confirm the run is green         → the signed image now exists in your ghcr
 3. make up && make bootstrap        → local cluster + platform
 4. make verify                      → all three controls pass
 ```
 
-Between steps 1 and 4 you can still exercise most of the platform locally — the cluster, Argo CD, the policies, and both negative controls all work. You just won't have a signed image to admit yet.
+Between steps 1 and 4 you can still exercise most of the platform locally: the cluster, Argo CD, the policies, and both negative controls all work. You just won't have a signed image of your own to admit yet.
 
 ### If you forked or renamed the repo
 
@@ -154,7 +166,7 @@ kubectl -n argocd logs deploy/argocd-repo-server --tail=50
 ```
 
 **Demo app pod never appears**
-If the image was never built by CI, this is expected — see the ordering section above. Otherwise check whether Kyverno rejected it, which is the interesting case:
+On a fork, if your CI has not run yet the image does not exist, and this is expected: see the ordering section above. On a plain clone of this repo the image is public and already signed, so that explanation does not apply and the interesting case is whether Kyverno rejected it:
 ```bash
 kubectl -n apps get events --sort-by=.lastTimestamp | tail -20
 kubectl get clusterpolicyreports -A

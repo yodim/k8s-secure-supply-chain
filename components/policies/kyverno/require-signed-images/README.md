@@ -14,7 +14,7 @@ This is the enforcement end of the supply chain. Signing in CI is theater unless
 
 1. Change `imageReferences` to your registry/namespace. Keep it narrow: only patterns you actually sign, or you will block third-party images.
 2. Change `subject` to your CI workflow identity, e.g. `https://github.com/<org>/<repo>/.github/workflows/<file>@refs/heads/main`.
-3. Roll out in audit first: set `failureAction: Audit`, watch PolicyReports for a few days, then flip to `Enforce`.
+3. Roll out in audit first: set `spec.validationFailureAction: Audit`, watch PolicyReports for a few days, then flip to `Enforce`. On Kyverno 1.12 (chart 3.2.x) that top-level field is the only thing that controls enforcement. The per-rule `failureAction` exists from Kyverno 1.13 onward; on 1.12 it is not in the ClusterPolicy CRD schema, so the API server prunes it and it enforces nothing while looking like it does.
 
 **Key-based variant:** replace the `keyless` block with:
 

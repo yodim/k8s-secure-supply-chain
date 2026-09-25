@@ -1,5 +1,5 @@
 ---
-# Reusable secure-build workflow: build → SBOM → scan → sign → attest → push.
+# Reusable secure-build workflow: build → SBOM → scan → push → sign → attest.
 # Call it from any repo with one `uses:` line — see
 # components/ci/github-actions/secure-build/README.md
 name: secure-build
