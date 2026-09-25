@@ -48,7 +48,7 @@ Scope is deliberately narrow: build-time provenance and admission enforcement, p
 
 ### Proving it enforces
 
-A control that has never refused anything is decoration, and the failure is invisible: a gate switched off looks exactly like a gate nothing has tripped. Both enforcement points here have a negative control that runs on every change, and each one asserts *why* it was refused, not merely that something was.
+Every enforcement point here has a negative control, and each one asserts why something was refused, not merely that it was. The build gate's runs in CI on every push; the admission controls run with `make verify` against a live cluster.
 
 - **Admission, signature**: [`make verify`](scripts/verify.sh) creates a pod from a real, resolvable, [deliberately unsigned image](tests/fixtures/unsigned-image/) and requires Kyverno to refuse it by name. If the refusal ever looks like "image not found" instead, the script fails, because that result would also appear with every policy deleted.
 - **Admission, registry**: the same script submits a pod from an unapproved registry that is compliant in every other respect, pinned tag and resource limits set, so the [registry allowlist](components/policies/kyverno/restrict-image-registries/) is the only rule that can refuse it. Verifying our own signatures is not the same as allowing only signed images: an image the verification rules do not match is not failed, it is never examined.
@@ -80,7 +80,7 @@ Each component is independently usable — no dependency on the rest of this rep
 | [`policies/kyverno/disallow-latest-tag`](components/policies/kyverno/disallow-latest-tag/) | Blocks `:latest` and untagged images | Baseline hygiene, works standalone |
 | [`policies/kyverno/require-resource-limits`](components/policies/kyverno/require-resource-limits/) | Enforces CPU/memory limits on all workloads | Baseline hygiene, works standalone |
 | [`terraform/modules/kind-cluster`](components/terraform/modules/kind-cluster/) | Reproducible kind cluster with local registry, sized for this stack | You want disposable, CI-compatible clusters as code |
-| [`ci/github-actions/secure-build`](components/ci/github-actions/secure-build/) | Reusable workflow: build → SBOM → scan → sign → attest → push | You want the full secure pipeline as one `uses:` line |
+| [`ci/github-actions/secure-build`](components/ci/github-actions/secure-build/) | Reusable workflow: build → SBOM → scan → push → sign → attest | You want the full secure pipeline as one `uses:` line |
 | [`ci/github-actions/source-scan`](components/ci/github-actions/source-scan/) | Reusable workflow: secret scanning (gitleaks) + SAST (Semgrep), SARIF to the Security tab | You want source-side checks without standing up a SAST server |
 
 ## Decisions (ADRs)
