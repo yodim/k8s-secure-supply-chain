@@ -23,6 +23,11 @@ jobs:
       - name: terraform fmt
         uses: hashicorp/setup-terraform@v4
       - run: terraform -chdir=components/terraform/modules/kind-cluster fmt -check -recursive
+      # Catches the sync config that discards policy updates without an
+      # error. Static, so it belongs next to the other repo-wide checks
+      # rather than in a job that needs a cluster.
+      - name: Argo sync contract
+        run: ./scripts/check-sync-contract.sh
 
   policy-tests:
     runs-on: ubuntu-latest

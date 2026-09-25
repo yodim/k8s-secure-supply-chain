@@ -1,5 +1,5 @@
 ---
-# Pulls admission policies straight from the component catalog — the
+# Pulls admission policies straight from the component catalog: the
 # composition consumes components/, never the other way around.
 # include glob picks up each policy.yaml; READMEs and test/ dirs are ignored.
 apiVersion: argoproj.io/v1alpha1
@@ -20,39 +20,41 @@ spec:
       include: "*/policy.yaml"
   destination:
     server: https://kubernetes.default.svc
+  # This app carries no syncOptions and no ignoreDifferences. Both are
+  # deliberate, and both were arrived at the hard way.
+  #
+  # ServerSideApply=true is off because Kyverno strips managedFields from
+  # ClusterPolicy objects, leaving SSA no ownership record to merge
+  # against. It is also what made Kyverno's defaulted fields read as drift,
+  # which is the only reason this app ever wanted ignoreDifferences.
+  #
+  # Kyverno defaults spec.admission, spec.background,
+  # spec.rules[].skipBackgroundRequests and
+  # spec.rules[].verifyImages[].useCache when it admits a policy. Under
+  # client-side apply none of them read as drift, because Argo's three-way
+  # merge only considers fields it set itself, so there is nothing left to
+  # ignore.
+  #
+  # Ignoring them anyway is what broke policy updates for a week without
+  # reporting a single error. RespectIgnoreDifferences=true does not just
+  # filter the diff, it rewrites the manifest before the apply: Argo strips
+  # the ignored paths from the live object, diffs the stripped copy against
+  # live to recover their values, then applies that patch onto the manifest
+  # from git. For a ClusterPolicy the patch is an RFC 7386 JSON merge
+  # patch, because Argo has no strategic-merge schema for a kind outside
+  # the Kubernetes scheme, and a JSON merge patch replaces a differing
+  # array wholesale instead of merging it element by element. Two of those
+  # four paths sit inside spec.rules[], so the entire rules array came back
+  # from the cluster and overwrote the one from git. Argo then applied the
+  # cluster's own policy to the cluster, truthfully logged "unchanged", and
+  # left the app OutOfSync forever. Creates worked; every edit afterwards
+  # was dropped in silence.
+  #
+  # scripts/check-sync-contract.sh fails CI if that pairing comes back. The
+  # same pairing is safe on demo-app, where the kind is a built-in
+  # Deployment and Argo uses a strategic merge patch that honours array
+  # merge keys.
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      # ServerSideApply is deliberately NOT set here, unlike the kyverno app.
-      # Kyverno strips managedFields from ClusterPolicy objects, and
-      # server-side apply needs that ownership record to compute its patch.
-      # Without it Argo reports "serverside-applied" and "successfully
-      # synced" while the object is never touched: creates land, updates
-      # vanish, and a policy silently stops tracking git after its first
-      # apply. Proven by reverting a live policy and watching Argo sit
-      # OutOfSync through several minutes of selfHeal without healing it.
-      # The defaulted-field drift that SSA was originally added for is
-      # handled by ignoreDifferences below, which is what actually fixed it.
-      - RespectIgnoreDifferences=true
-  # Kyverno defaults these on admission and they are absent from git, so the
-  # policies would otherwise sit OutOfSync forever. Deliberately limited to
-  # operational knobs: every field that carries verification meaning is
-  # declared in the policies themselves, so real drift still surfaces.
-  ignoreDifferences:
-    - group: kyverno.io
-      kind: ClusterPolicy
-      jqPathExpressions:
-        - .spec.admission
-        - .spec.background
-        - .spec.rules[].skipBackgroundRequests
-        # The '?' is not decoration. Without it this expression raises
-        # "Cannot iterate over null" on every policy that has no verifyImages
-        # block, which is three of the five. A jq error here does not surface
-        # as a sync failure: Argo reports "serverside-applied" and
-        # "successfully synced" while the object is never actually updated,
-        # so those policies silently stop tracking git after their first
-        # apply. Creates work, updates do not, which is the worst shape a
-        # GitOps bug can take.
-        - .spec.rules[].verifyImages[]?.useCache

@@ -35,6 +35,10 @@ lint: ## Lint everything (yaml, shell, terraform)
 check-gate: ## Assert the Trivy build gate is still wired the way its test expects
 	./scripts/check-gate-contract.sh
 
+.PHONY: check-sync
+check-sync: ## Assert no Argo app can silently drop updates to a custom resource
+	./scripts/check-sync-contract.sh
+
 .PHONY: test-policies
 test-policies: ## Run Kyverno policy tests (kyverno CLI required)
 	@for d in components/policies/kyverno/*/; do \
