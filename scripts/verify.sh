@@ -117,4 +117,7 @@ case "${rejection}" in
 ${rejection}" ;;
 esac
 
-log "Supply chain verified: only signed, attested images run here, and nothing else runs at all."
+# Scoped deliberately. The policies match the apps namespace only, because
+# kube-system, argocd and kyverno legitimately pull from upstream registries.
+# Claiming the whole cluster here would overstate what was just demonstrated.
+log "Supply chain verified: in the apps namespace, only signed and attested images run, and nothing from another registry runs at all."
