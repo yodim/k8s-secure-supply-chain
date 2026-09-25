@@ -38,4 +38,12 @@ spec:
         - .spec.admission
         - .spec.background
         - .spec.rules[].skipBackgroundRequests
-        - .spec.rules[].verifyImages[].useCache
+        # The '?' is not decoration. Without it this expression raises
+        # "Cannot iterate over null" on every policy that has no verifyImages
+        # block, which is three of the five. A jq error here does not surface
+        # as a sync failure: Argo reports "serverside-applied" and
+        # "successfully synced" while the object is never actually updated,
+        # so those policies silently stop tracking git after their first
+        # apply. Creates work, updates do not, which is the worst shape a
+        # GitOps bug can take.
+        - .spec.rules[].verifyImages[]?.useCache
