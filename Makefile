@@ -26,7 +26,9 @@ down: ## Destroy the cluster
 	terraform -chdir=$(TF_DIR) destroy -auto-approve || kind delete cluster --name $(CLUSTER_NAME)
 
 .PHONY: lint
-lint: ## Lint everything (yaml, shell, terraform)
+# check-sync is a prerequisite rather than a fourth command so the target and
+# the standalone one below stay a single definition. It runs first.
+lint: check-sync ## Lint everything (yaml, shell, terraform, Argo sync contract)
 	yamllint -c .yamllint.yml .
 	shellcheck scripts/*.sh
 	terraform -chdir=components/terraform/modules/kind-cluster fmt -check -recursive
