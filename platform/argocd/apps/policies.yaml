@@ -25,7 +25,16 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      - ServerSideApply=true
+      # ServerSideApply is deliberately NOT set here, unlike the kyverno app.
+      # Kyverno strips managedFields from ClusterPolicy objects, and
+      # server-side apply needs that ownership record to compute its patch.
+      # Without it Argo reports "serverside-applied" and "successfully
+      # synced" while the object is never touched: creates land, updates
+      # vanish, and a policy silently stops tracking git after its first
+      # apply. Proven by reverting a live policy and watching Argo sit
+      # OutOfSync through several minutes of selfHeal without healing it.
+      # The defaulted-field drift that SSA was originally added for is
+      # handled by ignoreDifferences below, which is what actually fixed it.
       - RespectIgnoreDifferences=true
   # Kyverno defaults these on admission and they are absent from git, so the
   # policies would otherwise sit OutOfSync forever. Deliberately limited to
