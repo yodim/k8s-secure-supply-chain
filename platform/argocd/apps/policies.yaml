@@ -35,6 +35,20 @@ spec:
       # OutOfSync through several minutes of selfHeal without healing it.
       # The defaulted-field drift that SSA was originally added for is
       # handled by ignoreDifferences below, which is what actually fixed it.
+      #
+      # Replace=true because apply cannot update these objects at all. Both
+      # apply strategies depend on metadata Kyverno removes: server-side
+      # apply needs managedFields, and the three-way merge needs
+      # last-applied-configuration. With apply, Argo logged
+      # "successfully synced" while the API server answered "unchanged", so
+      # a policy edit in git never reached the cluster and nothing reported
+      # an error. Replace issues a PUT, which writes unconditionally.
+      #
+      # The cost: a PUT overwrites anything set by a controller rather than
+      # by git. That is acceptable here only because the fields Kyverno
+      # defaults are listed under ignoreDifferences below, and it re-applies
+      # them through its webhook on the way back in.
+      - Replace=true
       - RespectIgnoreDifferences=true
   # Kyverno defaults these on admission and they are absent from git, so the
   # policies would otherwise sit OutOfSync forever. Deliberately limited to
