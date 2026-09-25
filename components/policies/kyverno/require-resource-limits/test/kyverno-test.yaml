@@ -10,11 +10,11 @@ resources:
 results:
   - policy: require-resource-limits
     rule: require-limits
-    resources: [good-with-limits]
+    resources: [good-with-limits, good-init-with-limits, good-ephemeral-no-limits]
     kind: Pod
     result: pass
   - policy: require-resource-limits
     rule: require-limits
-    resources: [bad-no-limits, bad-memory-only]
+    resources: [bad-no-limits, bad-memory-only, bad-init-no-limits]
     kind: Pod
     result: fail

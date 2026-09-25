@@ -10,11 +10,16 @@ resources:
 results:
   - policy: disallow-latest-tag
     rule: require-image-tag
-    resources: [good-pinned-tag, good-digest]
+    resources: [good-pinned-tag, good-digest, good-port-tagged, good-init-pinned]
     kind: Pod
     result: pass
   - policy: disallow-latest-tag
     rule: require-image-tag
-    resources: [bad-latest, bad-untagged]
+    resources:
+      - bad-latest
+      - bad-untagged
+      - bad-port-untagged
+      - bad-init-latest
+      - bad-ephemeral-latest
     kind: Pod
     result: fail

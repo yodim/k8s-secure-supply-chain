@@ -34,3 +34,61 @@ spec:
   containers:
     - name: app
       image: nginx
+---
+# Registry with a port and no tag. The runtime resolves this to :latest, but
+# a whole-string colon test sees the port and calls it tagged.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-port-untagged
+spec:
+  containers:
+    - name: app
+      image: localhost:5001/app
+---
+# Same registry, genuinely tagged. Must still pass, or the port fix would
+# just trade one false result for another.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-port-tagged
+spec:
+  containers:
+    - name: app
+      image: localhost:5001/app:1.0
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-init-latest
+spec:
+  initContainers:
+    - name: setup
+      image: ghcr.io/yodim/tools:latest
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:1.4.2
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-ephemeral-latest
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:1.4.2
+  ephemeralContainers:
+    - name: debugger
+      image: ghcr.io/yodim/debug-tools:latest
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-init-pinned
+spec:
+  initContainers:
+    - name: setup
+      image: ghcr.io/yodim/tools:2.1
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:1.4.2

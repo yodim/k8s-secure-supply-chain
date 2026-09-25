@@ -35,3 +35,62 @@ spec:
       resources:
         limits:
           memory: 256Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-init-with-limits
+  namespace: apps
+spec:
+  initContainers:
+    - name: setup
+      image: ghcr.io/yodim/tools:2.1
+      resources:
+        limits:
+          memory: 64Mi
+          cpu: 100m
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:1.4.2
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 250m
+---
+# The bypass: the main container is compliant, the init container is not.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-init-no-limits
+  namespace: apps
+spec:
+  initContainers:
+    - name: setup
+      image: ghcr.io/yodim/tools:2.1
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:1.4.2
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 250m
+---
+# Ephemeral containers cannot declare resources at all: Kubernetes rejects
+# the field. The policy must therefore not demand limits on them, or every
+# kubectl debug session would be refused.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-ephemeral-no-limits
+  namespace: apps
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:1.4.2
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: 250m
+  ephemeralContainers:
+    - name: debugger
+      image: ghcr.io/yodim/debug-tools:2.1

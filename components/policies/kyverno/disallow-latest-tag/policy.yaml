@@ -23,6 +23,10 @@ spec:
               kinds: [Pod]
       validate:
         message: "An explicit image tag or digest is required; ':latest' or untagged images are not allowed."
+        # One entry per container list. Init and ephemeral containers are
+        # separate fields, so checking only `containers` leaves the rule
+        # trivially avoidable: an init container runs first, and an ephemeral
+        # one is exactly what `kubectl debug` attaches.
         foreach:
           - list: "request.object.spec.containers[]"
             deny:
@@ -31,6 +35,31 @@ spec:
                   - key: "{{ element.image }}"
                     operator: Equals
                     value: "*:latest"
-                  - key: "{{ regex_match('^[^:@]+$', element.image) }}"
+                  # Untagged means no tag and no digest on the *image name*,
+                  # which is the part after the last slash. Testing the whole
+                  # string for a colon gets this wrong whenever the registry
+                  # carries a port: localhost:5001/app has a colon but no tag,
+                  # and the runtime resolves it to :latest anyway.
+                  - key: "{{ regex_match('^(.*/)?[^:@/]+$', element.image) }}"
+                    operator: Equals
+                    value: true
+          - list: "request.object.spec.initContainers[]"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: Equals
+                    value: "*:latest"
+                  - key: "{{ regex_match('^(.*/)?[^:@/]+$', element.image) }}"
+                    operator: Equals
+                    value: true
+          - list: "request.object.spec.ephemeralContainers[]"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: Equals
+                    value: "*:latest"
+                  - key: "{{ regex_match('^(.*/)?[^:@/]+$', element.image) }}"
                     operator: Equals
                     value: true

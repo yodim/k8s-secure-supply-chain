@@ -2,7 +2,7 @@
 
 **A reference implementation of a secure software supply chain on Kubernetes — built from reusable, self-contained components.**
 
-Every image that reaches this cluster is built, scanned, attested, signed, and admitted by policy. No exceptions, no manual gates.
+Every image that runs in this cluster's workload namespace is built, scanned, attested, signed, and admitted by policy. No exceptions, no manual gates. The platform's own namespaces (`kube-system`, `argocd`, `kyverno`) pull from upstream registries and are deliberately out of that scope.
 
 [![CI](https://github.com/yodim/k8s-secure-supply-chain/actions/workflows/ci.yml/badge.svg)](https://github.com/yodim/k8s-secure-supply-chain/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -23,10 +23,10 @@ Two ways to use it:
 ```mermaid
 flowchart LR
     subgraph CI["CI — GitHub Actions"]
-        A[Build image] --> B[Generate SBOM<br/>Syft]
-        B --> C[Scan<br/>Trivy]
-        C --> D[Sign + attest<br/>Cosign keyless]
-        D --> E[Push to registry]
+        A[Build image<br/>loaded, not pushed] --> B[Generate SBOM<br/>Syft]
+        B --> C[Scan gate<br/>Trivy]
+        C --> D[Push to registry]
+        D --> E[Sign digest + attest SBOM<br/>Cosign keyless]
     end
 
     subgraph GitOps["Delivery — GitOps"]
@@ -42,7 +42,7 @@ flowchart LR
     E --> H
 ```
 
-The chain of custody: **source → SBOM → scan → signature → attestation → policy-enforced admission**. An unsigned image, or one without an SBOM attestation, physically cannot run in this cluster.
+The chain of custody: **source → SBOM → scan → push → signature → attestation → policy-enforced admission**. In the `apps` namespace, an unsigned image, one without an SBOM attestation, or one from any other registry physically cannot run.
 
 Scope is deliberately narrow: build-time provenance and admission enforcement, plus lightweight source checks. Runtime threat detection, full SAST platforms and network policy are out, and [ADR-0005](adr/0005-scope-boundary.md) explains each exclusion — this is a supply chain reference, not a complete security program.
 
@@ -104,7 +104,7 @@ The *why* behind the stack — trade-offs included, not marketing:
 ├── platform/               # The composition — wires components into the reference platform
 │   ├── argocd/             #   app-of-apps, bootstrap manifests
 │   └── apps/demo-app/      #   sample workload exercising the full chain
-├── docs/                   # Quickstart, threat model, architecture notes
+├── docs/                   # Quickstart, local testing and troubleshooting
 ├── tests/fixtures/         # Deliberately broken artifacts the negative controls need
 └── scripts/                # Bootstrap & verification helpers
 ```

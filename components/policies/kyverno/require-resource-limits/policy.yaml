@@ -22,9 +22,21 @@ spec:
               kinds: [Pod]
               namespaces: [apps]
       validate:
-        message: "CPU and memory limits are required on all containers."
+        message: "CPU and memory limits are required on all containers, including init containers."
         pattern:
           spec:
+            # =() marks the field optional: checked when present, not required
+            # to exist. Without this entry an init container could run
+            # unbounded, and it runs before anything else in the Pod.
+            #
+            # ephemeralContainers is deliberately absent: Kubernetes forbids
+            # setting resources on them, so requiring limits there would
+            # reject every kubectl debug session rather than improve anything.
+            =(initContainers):
+              - resources:
+                  limits:
+                    memory: "?*"
+                    cpu: "?*"
             containers:
               - resources:
                   limits:
