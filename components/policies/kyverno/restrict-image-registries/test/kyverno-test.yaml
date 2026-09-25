@@ -1,0 +1,27 @@
+---
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: restrict-image-registries
+policies:
+  - ../policy.yaml
+resources:
+  - resources.yaml
+results:
+  - policy: restrict-image-registries
+    rule: allowed-registries-only
+    resources: [good-ghcr-tag, good-ghcr-digest, good-with-init]
+    kind: Pod
+    namespace: apps
+    result: pass
+  - policy: restrict-image-registries
+    rule: allowed-registries-only
+    resources:
+      - bad-dockerhub-qualified
+      - bad-dockerhub-bare
+      - bad-lookalike-account
+      - bad-other-ghcr-account
+      - bad-init-container
+    kind: Pod
+    namespace: apps
+    result: fail

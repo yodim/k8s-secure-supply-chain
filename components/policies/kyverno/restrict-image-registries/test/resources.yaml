@@ -1,0 +1,93 @@
+---
+# Namespace matters: the policy scopes to 'apps', so every fixture declares it.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-ghcr-tag
+  namespace: apps
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:main
+---
+# The form Kyverno itself produces after mutateDigest rewrites the tag.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-ghcr-digest
+  namespace: apps
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/yodim/k8s-secure-supply-chain/demo-app:main@sha256:08e2dfef6894fc1768e74a0d6a6f9755c42966689624bb113972fcb321a085b2
+---
+# Compliant main container, compliant init container.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good-with-init
+  namespace: apps
+spec:
+  initContainers:
+    - name: setup
+      image: ghcr.io/yodim/tools:1.0
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:main
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-dockerhub-qualified
+  namespace: apps
+spec:
+  containers:
+    - name: app
+      image: docker.io/library/nginx:1.27
+---
+# Bare name, which the runtime silently resolves to Docker Hub.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-dockerhub-bare
+  namespace: apps
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27
+---
+# The prefix trick: starts with 'ghcr.io/yodim' but is a different account.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-lookalike-account
+  namespace: apps
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/yodim-evil/app:1.0
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-other-ghcr-account
+  namespace: apps
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/other/app:1.0
+---
+# The bypass this policy exists to prevent: the visible container is fine,
+# the init container is not.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-init-container
+  namespace: apps
+spec:
+  initContainers:
+    - name: setup
+      image: docker.io/library/busybox:1.36
+  containers:
+    - name: app
+      image: ghcr.io/yodim/demo-app:main

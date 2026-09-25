@@ -15,7 +15,7 @@ Since "why isn't X here?" is the most common question this project gets, the exc
 ## In scope
 
 - **Build-time provenance** — SBOM generation, vulnerability gating, keyless signing, in-toto attestation.
-- **Admission enforcement** — signature and attestation verification, plus baseline hygiene policies that keep the enforcement layer itself viable.
+- **Admission enforcement** — signature and attestation verification, a registry allowlist, plus baseline hygiene policies that keep the enforcement layer itself viable. The allowlist was added later, once it became clear that verification alone does not produce the claim it appears to: a rule scoped to `imageReferences` has no opinion about an image it does not match, so an unsigned image from any other registry was admitted without being examined. "Only signed images run" needs both halves. Scoped to the workload namespace, since the platform's own components legitimately come from upstream registries.
 - **Lightweight source integrity** — secret scanning and SAST, but only via tools that run as a single binary in CI (see the SonarQube discussion below). Included because SLSA's threat model explicitly covers source-side compromise, so it is genuinely part of the chain rather than adjacent to it.
 
 ## Out of scope, and why

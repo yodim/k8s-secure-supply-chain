@@ -1,0 +1,69 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    policies.kyverno.io/title: Restrict Image Registries
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: critical
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Signature verification only inspects images it was told to match, so an
+      image from any other registry is admitted without being checked at all.
+      This closes that gap by allowing only the registry whose images the
+      pipeline signs. Verification and allowlisting are complementary: one
+      proves our images are ours, the other denies everything else a way in.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  failurePolicy: Fail
+  rules:
+    - name: allowed-registries-only
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [apps]  # workload namespace only; widen deliberately
+      validate:
+        # No '{{ element.image }}' here: the message sits outside the foreach,
+        # where that variable is not in scope, and Kyverno rejects the policy
+        # at load time if you reference it. Naming the allowed registry is
+        # what matters anyway, so a rejection is attributable on sight.
+        message: >-
+          This image is not from an allowed registry. Only images under
+          ghcr.io/yodim/ may run in this namespace, because only those are
+          signed and attested by this pipeline. Registry allowlisting is
+          separate from signature verification: see the require-signed-images
+          policy for the images that are checked once they are let in.
+        # One entry per container list. initContainers and ephemeralContainers
+        # are separate fields, so omitting either would leave a bypass: a Pod
+        # whose main container is compliant can still pull anything it likes
+        # in an init step.
+        foreach:
+          - list: "request.object.spec.containers[]"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    # The trailing slash is load-bearing. 'ghcr.io/yodim*'
+                    # would also admit ghcr.io/yodim-evil/app, a different
+                    # account. The wildcard spans '/', ':' and '@', so it
+                    # still matches an image Kyverno has already rewritten to
+                    # tag@sha256:digest form.
+                    value: "ghcr.io/yodim/*"
+          - list: "request.object.spec.initContainers[]"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "ghcr.io/yodim/*"
+          - list: "request.object.spec.ephemeralContainers[]"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "ghcr.io/yodim/*"

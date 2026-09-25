@@ -58,7 +58,7 @@ docker info >/dev/null && echo "docker ok"
 
 This is the part that surprises people, and it's inherent to the design rather than a defect.
 
-`make verify` runs two checks. The **negative control** (an unsigned image must be rejected) works immediately on a fresh cluster. The **positive control** waits for the demo app to be Running — and the demo app's image is only produced, signed and attested by *your* CI. Until the workflow has run on GitHub, that image doesn't exist, so the positive control cannot pass locally.
+`make verify` runs three checks. The two **negative controls** (an unsigned image must be rejected, and an image from an unapproved registry must be rejected) work immediately on a fresh cluster. The **positive control** waits for the demo app to be Running — and the demo app's image is only produced, signed and attested by *your* CI. Until the workflow has run on GitHub, that image doesn't exist, so the positive control cannot pass locally.
 
 So the real first-run sequence is:
 
@@ -66,10 +66,10 @@ So the real first-run sequence is:
 1. Push the repo to GitHub          → Actions builds, scans, signs, attests the demo image
 2. Confirm the run is green         → the signed image now exists in ghcr.io
 3. make up && make bootstrap        → local cluster + platform
-4. make verify                      → both controls pass
+4. make verify                      → all three controls pass
 ```
 
-Between steps 1 and 4 you can still exercise most of the platform locally — the cluster, Argo CD, the policies, and the negative control all work. You just won't have a signed image to admit yet.
+Between steps 1 and 4 you can still exercise most of the platform locally — the cluster, Argo CD, the policies, and both negative controls all work. You just won't have a signed image to admit yet.
 
 ### If you forked or renamed the repo
 

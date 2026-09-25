@@ -50,7 +50,8 @@ Scope is deliberately narrow: build-time provenance and admission enforcement, p
 
 A control that has never refused anything is decoration, and the failure is invisible: a gate switched off looks exactly like a gate nothing has tripped. Both enforcement points here have a negative control that runs on every change, and each one asserts *why* it was refused, not merely that something was.
 
-- **Admission**: [`make verify`](scripts/verify.sh) creates a pod from a real, resolvable, [deliberately unsigned image](tests/fixtures/unsigned-image/) and requires Kyverno to refuse it by name. If the refusal ever looks like "image not found" instead, the script fails, because that result would also appear with every policy deleted.
+- **Admission, signature**: [`make verify`](scripts/verify.sh) creates a pod from a real, resolvable, [deliberately unsigned image](tests/fixtures/unsigned-image/) and requires Kyverno to refuse it by name. If the refusal ever looks like "image not found" instead, the script fails, because that result would also appear with every policy deleted.
+- **Admission, registry**: the same script submits a pod from an unapproved registry that is compliant in every other respect, pinned tag and resource limits set, so the [registry allowlist](components/policies/kyverno/restrict-image-registries/) is the only rule that can refuse it. Verifying our own signatures is not the same as allowing only signed images: an image the verification rules do not match is not failed, it is never examined.
 - **Build gate**: CI builds a [deliberately vulnerable image](tests/fixtures/vulnerable-image/) and requires the Trivy gate to fail the build. It reads the gate's own configuration out of the workflow rather than restating it, so loosening the gate loosens the test and CI goes red.
 
 ## Quickstart
@@ -62,7 +63,7 @@ git clone https://github.com/yodim/k8s-secure-supply-chain
 cd k8s-secure-supply-chain
 make up        # kind cluster + local registry, via Terraform
 make bootstrap # installs Argo CD, applies app-of-apps; platform converges via GitOps
-make verify    # runs the demo: signed image admitted, unsigned image rejected
+make verify    # runs the demo: signed image admitted, unsigned and foreign-registry images rejected
 ```
 
 Tear down with `make down`. Full walkthrough in [docs/quickstart.md](docs/quickstart.md); Windows/WSL2 setup and first-run ordering in [docs/local-testing.md](docs/local-testing.md).
@@ -75,6 +76,7 @@ Each component is independently usable — no dependency on the rest of this rep
 |---|---|---|
 | [`policies/kyverno/require-signed-images`](components/policies/kyverno/require-signed-images/) | Rejects images without a valid Cosign signature | You want signature enforcement without adopting a full platform |
 | [`policies/kyverno/require-sbom-attestation`](components/policies/kyverno/require-sbom-attestation/) | Requires an in-toto SBOM attestation on every image | You need SBOM compliance evidence at admission time |
+| [`policies/kyverno/restrict-image-registries`](components/policies/kyverno/restrict-image-registries/) | Allows only images from the registry whose images this pipeline signs | You have signature verification already and want to close the gap it leaves for everyone else's images |
 | [`policies/kyverno/disallow-latest-tag`](components/policies/kyverno/disallow-latest-tag/) | Blocks `:latest` and untagged images | Baseline hygiene, works standalone |
 | [`policies/kyverno/require-resource-limits`](components/policies/kyverno/require-resource-limits/) | Enforces CPU/memory limits on all workloads | Baseline hygiene, works standalone |
 | [`terraform/modules/kind-cluster`](components/terraform/modules/kind-cluster/) | Reproducible kind cluster with local registry, sized for this stack | You want disposable, CI-compatible clusters as code |
