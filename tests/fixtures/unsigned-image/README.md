@@ -18,7 +18,15 @@ image tag not found: MANIFEST_UNKNOWN: manifest unknown
 
 It failed because the registry had nothing to return, not because the image was unsigned. The same result would appear with every verification rule deleted, which makes the test worthless as evidence: it proves the registry can 404, not that the cluster enforces signatures.
 
-This fixture closes that gap. It is a real image, it resolves, it pulls, it matches the policies' `imageReferences` pattern, and it carries no signature and no attestation. When admission refuses it, the refusal is attributable to signature verification and nothing else. `scripts/verify.sh` asserts on the reason, and fails loudly if it sees a resolution error instead.
+This fixture closes that gap. It is a real image, it resolves, it pulls, it matches the policies' `imageReferences` pattern, and it carries no signature and no attestation. When admission refuses it, the refusal is attributable to signature verification and nothing else.
+
+`scripts/verify.sh` asserts on the verdict, not the policy name. Matching on `require-signed-images` alone is not enough, because that policy reports a failure whenever it cannot reach a verdict at all, and those rejections name the same policy. The script requires the message to contain **`no signatures found`**, which is Cosign saying it read the image and there was nothing to verify. It fails with a distinct message, and a distinct remedy, for each way of not knowing:
+
+| Rejection contains | Means | What it is not |
+|---|---|---|
+| `MANIFEST_UNKNOWN`, `image tag not found`, `name unknown` | the image could not be **resolved** | publish the fixture |
+| `UNAUTHORIZED`, `DENIED`, `401`, `403`, `failed to fetch` | the image could not be **read** | fix `ghcr-creds` and the token's `read:packages` |
+| `require-signed-images` but not `no signatures found` | refused for some other reason, e.g. an identity mismatch | not evidence this image is unsigned |
 
 ## Publishing it
 

@@ -38,19 +38,40 @@ if rejection=$(kubectl --context "${CONTEXT}" -n apps run unsigned-test \
   fail "unsigned image was ADMITTED — the policy chain is not enforcing"
 fi
 
-# Rejected, but a rejection alone proves nothing: an image name the registry
-# cannot resolve is also rejected, and would be with every policy deleted.
-# The reason has to be signature verification for this to be evidence.
+# Rejected, but a rejection alone proves nothing, and neither does the policy
+# name. require-signed-images reports a failure whenever it cannot reach a
+# verdict, including when it cannot read the image at all. Those rejections
+# name the same policy and look identical at a glance, so matching on the
+# policy alone would pass while proving only that the registry said no.
+#
+# Two distinct not-evidence cases, each with its own message, because the
+# remedy differs: one means publish the fixture, the other means fix
+# credentials.
 case "${rejection}" in
   *MANIFEST_UNKNOWN*|*"image tag not found"*|*"name unknown"*)
-    fail "rejected because the image could not be resolved, not because it is unsigned.
+    fail "rejected because the image could not be RESOLVED, not because it is unsigned.
+     The registry has nothing at ${UNSIGNED_IMAGE}, and that result would also
+     appear with every verification policy deleted.
      Publish the fixture first:  gh workflow run publish-unsigned-fixture.yml
      See tests/fixtures/unsigned-image/README.md" ;;
+  *UNAUTHORIZED*|*DENIED*|*" 401"*|*" 403"*|*"failed to fetch"*)
+    fail "rejected because the fixture could not be READ, not because it is unsigned.
+     Kyverno reached the registry but was refused, so it never inspected a
+     signature and this control proves nothing.
+     Check the ghcr-creds secret in the kyverno namespace and that its token
+     still carries read:packages. See docs/local-testing.md." ;;
 esac
 
+# The verdict itself, not just the policy that issued it. 'no signatures found'
+# is Cosign reporting that it read the image and there was nothing to verify,
+# which is the only outcome that makes this control evidence.
 case "${rejection}" in
-  *require-signed-images*)
+  *require-signed-images*"no signatures found"*|*"no signatures found"*require-signed-images*)
     pass "unsigned image rejected by signature verification" ;;
+  *require-signed-images*)
+    fail "require-signed-images refused it, but not for the absence of a signature.
+     Expected 'no signatures found'. Full response:
+${rejection}" ;;
   *)
     fail "rejected, but not by require-signed-images. Full response:
 ${rejection}" ;;
